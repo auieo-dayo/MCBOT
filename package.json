@@ -7,9 +7,9 @@
     "start": "node main.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "auieo-dayo",
   "type": "module",
-  "license": "ISC",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "bedrock-protocol": "^3.55.0",
