@@ -9,7 +9,7 @@ export default class PlayerManager {
         this.list.delete(playername)
     }
     getplayerlist() {
-        return this.list.keys()
+        return Array.from(this.list.keys())
     }
     isjoined(playername) {
         return this.list.get(playername)
