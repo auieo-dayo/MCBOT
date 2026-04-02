@@ -142,7 +142,8 @@ vite.config.ts.timestamp-*
 .vscode/
 
 
-#BSW関連
+
 bds/
 log/
 auth/
+config.js
