@@ -58,7 +58,7 @@ const events = {
   },
   // Join Leave
   joinleave: (packet,type=0)=>{
-    if (0 <= type && 1 <= type) return 1
+    if (0 <= type && type <= 1) return 1
     const name = packet.parameters?.[0] ?? 'Unknown';
     const types = ["ログイン","ログアウト"]
     console.log(`${name}が${types[type]}しました`);
