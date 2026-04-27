@@ -12,6 +12,7 @@ import dmsgs from "./src/deathMessage.js"
 import Discord from './src/discord.js';
 import PlayerManager from './src/playermanager.js';
 import entityNameMap from './src/EntityNameMap.js';
+import {setCommands} from "./src/setCmd.js"
 
 
 import { fileURLToPath } from "url";
@@ -24,6 +25,10 @@ const __dirname = dirname(__filename);
 const root = __dirname;
 
 const lm = new Logger(root);
+
+const Flags = {
+  ChatStop: false
+}
 
 // type,server,username,authTitle,skipPing=false,version
 
@@ -39,8 +44,9 @@ const mineclient_config = mineclient.buildConfig(
 eventBus.on('mcLogedin', (data) => {
   lm.addlog("log",'Minecraft login success', {worldname:data.worldname});
 });
-eventBus.on('mcDisconnected', (data) => {
+eventBus.on('mcDisconnect', (data) => {
   lm.addlog("log",'Minecraft disconnected success', {type:data.type});
+  if (!data.waitRestart) discord.destroy()
 });
 
 const pm = new PlayerManager()
@@ -49,20 +55,25 @@ const pm = new PlayerManager()
 const events = {
   // Chat
   chat: (packet)=>{
-    if (packet.source_name == mc.client.username ?? "") return
+    if (packet.source_name == (mc.client.username ?? "")) return
     const {source_name,message} = packet
     lm.addlog("chat",`${source_name}:${message}`,{source_name,message,source:"Minecraft"})
-    discord.send({content:`\`${source_name}\`:${message}`})
     if (!pm.isjoined(source_name)) pm.join(source_name)
+    if (Flags.ChatStop) return
+    discord.send({content:`\`${source_name}\`:${message}`})
 
   },
   // Join Leave
   joinleave: (packet,type=0)=>{
-    if (0 <= type && type <= 1) return 1
     const name = packet.parameters?.[0] ?? 'Unknown';
     const types = ["ログイン","ログアウト"]
     console.log(`${name}が${types[type]}しました`);
     lm.addlog("chat",`${name}が${types[type]}しました`,{name,type})
+    
+    if (type === 0) pm.join(name);
+    if (type === 1) pm.leave(name); 
+    
+    if (Flags.ChatStop) return
 
     const embed =new EmbedBuilder()
       .setTitle(`${name}が${types[type]}しました`)
@@ -71,11 +82,10 @@ const events = {
       .setTimestamp(new Date())
     discord.send({embeds:[embed]})
 
-    if (type === 0) pm.join(name);
-    if (type === 1) pm.leave(name); 
+    
   },
   // Death 
-  death: (packet)=>{
+  death: async(packet)=>{
     const diedplayer = packet.parameters?.[0] ?? '???';
     // エンティティかdiedplayerがないならスキップ
     if (/^\%entity/.test(diedplayer) || !diedplayer) return
@@ -90,49 +100,96 @@ const events = {
       .replaceAll("%item%",item);
     
     lm.addlog("death",`${deathmsg}`,{diedplayer,sourceKey,killer,item})
-
+    if (!pm.isjoined(diedplayer)) pm.join(diedplayer)
+    
+    if (Flags.ChatStop) return
+    
     const embed =new EmbedBuilder()
       .setTitle(`${deathmsg}`)
       .setDescription(`WorldName:${mc.world.name}`)
       .setColor(0xd534eb)
-      .setTimestamp(new Date())
-    discord.send({embeds:[embed]})
+      .setTimestamp(new Date());
+    await discord.send({embeds:[embed]})
 
-    if (!pm.isjoined(diedplayer)) pm.join(diedplayer)
-  }
-}
-
-const discord = new Discord()
-await discord.login(config.disocrd.token,config.disocrd.channelId)
-
-discord.on(Events.MessageCreate,((message)=>{
-  if (message.channelId !== config.disocrd.channelId) return
-  const {content} = message
-  if (!content || message.author.bot) return
-
-  if (content === "?pl" || content === "?playerslist") {
+  },
+  // PlayerList
+  pl: async (message)=>{
     const list = pm.getplayerlist()
     const embed = new EmbedBuilder()
     embed.setTitle("PlayersList")
     embed.setTimestamp(new Date())
-    
+
     if (!list[0]) {
       embed.setDescription("<NonPlayer>")
-      return discord.send({embeds:[embed]})
+      return await message.reply({embeds:[embed]})
     }
 
     let md = "" 
     for (const p of list) {md+=`- ${p}\n`}
-    return discord.send({embeds:[embed]})
+    embed.setDescription(md)
+    return await message.reply({embeds:[embed]})
+  },
+  // チャット連携一時停止
+  pauseChat: async(message)=>{
+    Flags.ChatStop = !Flags.ChatStop
+    const embed = new EmbedBuilder()
+      .setTitle("チャット連携")
+      .setDescription(`を${Flags.ChatStop ? "ストップ" :"再開"}しました`)
+      .setTimestamp(new Date())
+      .setColor(0x6bd0ff)
+    return await message.reply({embeds:[embed]})
+  },
+  // 再起動
+  restart: async(message)=>{
+    const embed = new EmbedBuilder()
+      .setTitle("再起動")
+      .setDescription(`を開始します...`)
+      .setTimestamp(new Date())
+      .setColor(0xff776b);
+    await message.reply({embeds:[embed]})
+    mc.disconnect(true)
+    mc.connect()
   }
+}
 
+const discord = new Discord()
+await discord.login(config.discord.token,config.discord.channelId)
+// コマンドの設定
+await setCommands(discord.client,config.discord.guildId)
+
+discord.on(Events.MessageCreate,((message)=>{
+  if (message.channelId !== config.discord.channelId) return
+  const {content} = message
+  if (!content || message.author.bot) return
+
+  if (content === "?pl" || content === "?playerslist") return await events.pl(message);
+
+  lm.addlog("chat",`[D]${message.author.displayName}:${message.content}`,{source_name:message.author.displayName,message:message.content,source:"Discord"})
+  if (Flags.ChatStop) return
+  
   mc.sendchat(content,`[D]${message.author.displayName}`)
-  lm.addlog("chat",`[D}${message.author.displayName}:${message.content}`,{source_name:message.author.displayName,message:message.content,source:"Discord"})
 }))
 
+discord.on(Events.InteractionCreate,(async(_ev)=>{
+  /**
+   * @type {import('discord.js').Interaction}
+   */
+  const interaction = _ev
+  if (interaction.guildId != config.discord.guildId) return
+  if (!interaction.isCommand()) return
+  const {commandName} = interaction
+  if (commandName == "pl") await events.pl(interaction);
+
+  if (commandName == "auieo") {
+    const option = interaction.options.getString("option")
+    if (!option) return interaction.reply("オプションがありません")
+    if (option == "chatPause") await events.pauseChat(interaction)
+    if (option == "restart") await events.restart(interaction);
+  }
+}))
 
 const mc = new mineclient.client(mineclient_config)
-
+mc.connect()
 
 mc.on("text",(packet)=>{
   const msg = packet.message.replace(/§./g, '');
@@ -155,15 +212,15 @@ mc.on("spawn",async()=>{
     .setDescription(`WorldName:${mc.world.name}`)
     .setColor(0x45a33d)
     .setTimestamp(new Date())
-  discord.send({embeds:[embed]})
+  await discord.send({embeds:[embed]})
 })
 
 mc.on("disconnect",(p)=>{
   console.log(p)
-  discord.destroy()
 })
 
 
 process.on("SIGINT",()=>{
-    mc.disconnect()
+  discord.destroy()
+  mc.disconnect()
 })

@@ -15,11 +15,13 @@ const config = {
             realmsInvite: ""
         }
     },
-    disocrd: {
+    discord: {
         // ディスコBOTのトークン
         token: "",
         // チャンネルID
-        channelId: ""
+        channelId: "",
+        // サーバーID
+        guildId: ""
     }
 }
 

@@ -8,6 +8,11 @@ class client {
     constructor (config) {
         if (!config) return
         this.config = config
+        this.waitRestart = false
+        this.events = new Map()
+    }
+    connect() {
+
         this.client = createClient(this.config);
         this.client.on("start_game",(packet)=>{
             const position = packet.position ?? packet.Position ?? packet.Player_Position ?? packet.player_position
@@ -25,20 +30,28 @@ class client {
                 position: position
             })
         })
+        if (this.waitRestart){
+            this.events.forEach((handler,event)=>{
+                this.client.on(event,handler)
+            })
+            this.waitRestart = false
+        }
     }
     on(event,handler) {
+        this.events.set(event,handler)
         this.client.on(event,handler)
     }
-    disconnect() {
+    disconnect(waitRestart=false) {
         this.client.close()
-        eventBus.emit("mcDisconnect",{type:1})
+        this.waitRestart = waitRestart
+        eventBus.emit("mcDisconnect",{type:1,waitRestart})
         this.client = undefined
     }
     sendchat(msg,username) {
         if (!this.client) return 1
         let prefix = ""
         if (username) prefix=`§3${username}§r:`;
-        if (msg || this.client) {
+        if (msg && this.client) {
             this.client.queue('text', {
             type: 'chat',
             needs_translation: false,
