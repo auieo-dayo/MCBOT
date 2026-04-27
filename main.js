@@ -157,7 +157,7 @@ await discord.login(config.discord.token,config.discord.channelId)
 // コマンドの設定
 await setCommands(discord.client,config.discord.guildId)
 
-discord.on(Events.MessageCreate,((message)=>{
+discord.on(Events.MessageCreate,async(message)=>{
   if (message.channelId !== config.discord.channelId) return
   const {content} = message
   if (!content || message.author.bot) return
@@ -168,7 +168,7 @@ discord.on(Events.MessageCreate,((message)=>{
   if (Flags.ChatStop) return
   
   mc.sendchat(content,`[D]${message.author.displayName}`)
-}))
+})
 
 discord.on(Events.InteractionCreate,(async(_ev)=>{
   /**
