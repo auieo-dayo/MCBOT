@@ -37,7 +37,7 @@ eventBus.on("leave",(data)=>{
 })
 
 eventBus.on("death",(deathmsg,diedplayer,sourceKey,killer,item)=>{
-    broadcast({type:"death",data:{deathmsg,diedplayer,sourceKey,killer,item}})
+    broadcast({type:"death",data:deathmsg,diedplayer,sourceKey,killer,item})
 })
 
 
