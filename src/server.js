@@ -33,7 +33,6 @@ eventBus.on("join",(data)=>{
     broadcast({type:"join",name:data.name,data:data.data})
 })
 eventBus.on("leave",(data)=>{
-    const {name,data} = data
     broadcast({type:"leave",name:data.name,data:data.data})
 })
 
