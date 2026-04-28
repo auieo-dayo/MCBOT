@@ -51,7 +51,7 @@ function broadcast(json) {
 }
 
 function start() {
-    server.listen(8585,"0.0.0.0",()=>{
+    server.listen(8009,"0.0.0.0",()=>{
         console.log("[WS&HTTP Server]StartServer")
     })
 }
