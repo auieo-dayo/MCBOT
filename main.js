@@ -13,6 +13,7 @@ import Discord from './src/discord.js';
 import PlayerManager from './src/playermanager.js';
 import entityNameMap from './src/EntityNameMap.js';
 import {setCommands} from "./src/setCmd.js"
+import Server from "./src/server.js"
 
 
 import { fileURLToPath } from "url";
@@ -59,6 +60,7 @@ const events = {
     const {source_name,message} = packet
     lm.addlog("chat",`${source_name}:${message}`,{source_name,message,source:"Minecraft"})
     if (!pm.isjoined(source_name)) pm.join(source_name)
+    eventBus.emit(`newChat`,{name:source_name,message,isMinecraft:true})
     if (Flags.ChatStop) return
     discord.send({content:`\`${source_name}\`:${message}`})
 
@@ -70,8 +72,14 @@ const events = {
     console.log(`${name}が${types[type]}しました`);
     lm.addlog("chat",`${name}が${types[type]}しました`,{name,type})
     
-    if (type === 0) pm.join(name);
-    if (type === 1) pm.leave(name); 
+    if (type === 0) {
+      eventBus.emit(`join`,{name,data:`${name}が${types[type]}しました`})
+      pm.join(name);
+    }
+    if (type === 1) {
+      eventBus.emit(`leave`,{name,data:`${name}が${types[type]}しました`})
+      pm.leave(name);
+    } 
     
     if (Flags.ChatStop) return
 
@@ -100,6 +108,7 @@ const events = {
       .replaceAll("%item%",item);
     
     lm.addlog("death",`${deathmsg}`,{diedplayer,sourceKey,killer,item})
+    eventBus.emit(`death`,deathmsg,diedplayer,sourceKey,killer,item)
     if (!pm.isjoined(diedplayer)) pm.join(diedplayer)
     
     if (Flags.ChatStop) return
@@ -165,6 +174,7 @@ discord.on(Events.MessageCreate,async(message)=>{
   if (content === "?pl" || content === "?playerslist") return await events.pl(message);
 
   lm.addlog("chat",`[D]${message.author.displayName}:${message.content}`,{source_name:message.author.displayName,message:message.content,source:"Discord"})
+  eventBus.emit(`newChat`,{name:message.author.displayName,message:message.content,isMinecraft:false})
   if (Flags.ChatStop) return
   
   mc.sendchat(content,`[D]${message.author.displayName}`)
@@ -218,6 +228,9 @@ mc.on("spawn",async()=>{
 mc.on("disconnect",(p)=>{
   console.log(p)
 })
+
+// WebServer
+Server.start()
 
 
 process.on("SIGINT",()=>{
