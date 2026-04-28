@@ -30,12 +30,11 @@ eventBus.on('newChat', (data) => {
 });
 
 eventBus.on("join",(data)=>{
-    const {name,data} = data
-    broadcast({type:"join",name,data})
+    broadcast({type:"join",name:data.name,data:data.data})
 })
 eventBus.on("leave",(data)=>{
     const {name,data} = data
-    broadcast({type:"leave",name,data})
+    broadcast({type:"leave",name:data.name,data:data.data})
 })
 
 eventBus.on("death",(deathmsg,diedplayer,sourceKey,killer,item)=>{
