@@ -209,7 +209,11 @@ discord.on(Events.InteractionCreate,(async(_ev)=>{
     if (!option) return interaction.reply("オプションがありません")
     if (option == "chatPause") await events.pauseChat(interaction)
     if (option == "restart") await events.restart(interaction);
-    if (option == "clearplayerlist") await events.clearPL(interaction);
+    if (option == "clearplayerlist") {
+      const member = await interaction.guild.members.fetch({id:interaction.user.id,cache:false})
+      if (!member.roles.cache.has(config.discord.roleId))  return;
+      await events.clearPL(interaction);
+    }
   }
 }))
 

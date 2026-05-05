@@ -10,7 +10,6 @@ const commandlist = [
     {
         name: "auieo",
         description: "auieo-dayo作MCBOT系コマンド",
-        defaultMemberPermissions: "Administrator",
         options: [
             {
                 name: "option",
