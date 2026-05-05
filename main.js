@@ -205,7 +205,7 @@ discord.on(Events.InteractionCreate,(async(_ev)=>{
   if (commandName == "pl") await events.pl(interaction);
 
   if (commandName == "auieo") {
-    const member = await interaction.guild.members.fetch({id:interaction.user.id,cache:false})
+    const member = await interaction.guild.members.fetch(interaction.user.id)
     if (!member.roles.cache.has(config.discord.roleId))  return;
     const option = interaction.options.getString("option")
     if (!option) return interaction.reply("オプションがありません")
