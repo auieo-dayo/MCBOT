@@ -18,7 +18,7 @@ import Server from "./src/server.js"
 
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { EmbedBuilder, Events } from 'discord.js';
+import { EmbedBuilder, Events, Message, MessageFlags } from 'discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -27,7 +27,7 @@ const root = __dirname;
 
 const lm = new Logger(root);
 
-const Flags = {
+const flags = {
   ChatStop: false
 }
 
@@ -61,7 +61,7 @@ const events = {
     lm.addlog("chat",`${source_name}:${message}`,{source_name,message,source:"Minecraft"})
     if (!pm.isjoined(source_name)) pm.join(source_name)
     eventBus.emit(`newChat`,{name:source_name,message,isMinecraft:true})
-    if (Flags.ChatStop) return
+    if (flags.ChatStop) return
     discord.send({content:`\`${source_name}\`:${message}`})
 
   },
@@ -81,7 +81,7 @@ const events = {
       pm.leave(name);
     } 
     
-    if (Flags.ChatStop) return
+    if (flags.ChatStop) return
 
     const embed =new EmbedBuilder()
       .setTitle(`${name}が${types[type]}しました`)
@@ -111,7 +111,7 @@ const events = {
     eventBus.emit(`death`,deathmsg,diedplayer,sourceKey,killer,item)
     if (!pm.isjoined(diedplayer)) pm.join(diedplayer)
     
-    if (Flags.ChatStop) return
+    if (flags.ChatStop) return
     
     const embed =new EmbedBuilder()
       .setTitle(`${deathmsg}`)
@@ -140,10 +140,10 @@ const events = {
   },
   // チャット連携一時停止
   pauseChat: async(message)=>{
-    Flags.ChatStop = !Flags.ChatStop
+    flags.ChatStop = !flags.ChatStop
     const embed = new EmbedBuilder()
       .setTitle("チャット連携")
-      .setDescription(`を${Flags.ChatStop ? "ストップ" :"再開"}しました`)
+      .setDescription(`を${flags.ChatStop ? "ストップ" :"再開"}しました`)
       .setTimestamp(new Date())
       .setColor(0x6bd0ff)
     return await message.reply({embeds:[embed]})
@@ -158,6 +158,20 @@ const events = {
     await message.reply({embeds:[embed]})
     mc.disconnect(true)
     mc.connect()
+  },
+  /**
+   * 
+   * @param {Message} message 
+   */
+  clearPL: async(message) => {
+    const embed = new EmbedBuilder()
+      .setTitle("プレイヤーリストの")
+      .setDescription(`初期化を開始します...`)
+      .setTimestamp(new Date())
+      .setColor(0xff776b);
+    await message.reply({embeds:[embed],flags:MessageFlags.Ephemeral})
+    const list = pm.getplayerlist()
+    list.forEach((v)=>pm.leave(v))
   }
 }
 
@@ -175,7 +189,7 @@ discord.on(Events.MessageCreate,async(message)=>{
 
   lm.addlog("chat",`[D]${message.author.displayName}:${message.content}`,{source_name:message.author.displayName,message:message.content,source:"Discord"})
   eventBus.emit(`newChat`,{name:message.author.displayName,message:message.content,isMinecraft:false})
-  if (Flags.ChatStop) return
+  if (flags.ChatStop) return
   
   mc.sendchat(content,`[D]${message.author.displayName}`)
 })
@@ -195,6 +209,7 @@ discord.on(Events.InteractionCreate,(async(_ev)=>{
     if (!option) return interaction.reply("オプションがありません")
     if (option == "chatPause") await events.pauseChat(interaction)
     if (option == "restart") await events.restart(interaction);
+    if (option == "clearplayerlist") await events.clearPL(interaction);
   }
 }))
 

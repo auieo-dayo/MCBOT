@@ -20,6 +20,7 @@ const commandlist = [
                 choices: [
                     {name:"再起動",value:"restart"},
                     {name:"チャット連携を一時停止",value:"chatPause"},
+                    {name:"プレイヤーリストをリセット",value:"clearplayerlist"},
                 ]
             }
         ]
