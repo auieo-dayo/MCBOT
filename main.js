@@ -50,6 +50,12 @@ eventBus.on('mcDisconnect', (data) => {
   if (!data.waitRestart) discord.destroy()
 });
 
+const parseMessageFromMC = (msg="")=>msg.replaceAll("<@","<@ ")
+  .replaceAll("<&","<& ")
+  .replaceAll("@everyone","@ everyone")
+  .replaceAll("@here","@ here")
+  .replaceAll("discord.gg/","discord .gg")
+
 const pm = new PlayerManager()
 
 // Events
@@ -62,7 +68,7 @@ const events = {
     if (!pm.isjoined(source_name)) pm.join(source_name)
     eventBus.emit(`newChat`,{name:source_name,message,isMinecraft:true})
     if (flags.ChatStop) return
-    discord.send({content:`\`${source_name}\`:${message}`})
+    discord.send({content:`\`${source_name}\`:${parseMessageFromMC(message)}`})
 
   },
   // Join Leave
