@@ -56,7 +56,7 @@ const pm = new PlayerManager()
 const events = {
   // Chat
   chat: (packet)=>{
-    if (packet.source_name == (mc.client.username ?? "")) return
+    if (String(packet.source_name).replace(/§./g,"") == (mc.client.username ?? "")) return
     const {source_name,message} = packet
     lm.addlog("chat",`${source_name}:${message}`,{source_name,message,source:"Minecraft"})
     if (!pm.isjoined(source_name)) pm.join(source_name)
