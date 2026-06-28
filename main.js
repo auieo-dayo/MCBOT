@@ -62,8 +62,9 @@ const pm = new PlayerManager()
 const events = {
   // Chat
   chat: (packet)=>{
-    if (String(packet.source_name).replace(/§./g,"") == (mc.client.username ?? "")) return
-    const {source_name,message} = packet
+    const source_name = String(packet.source_name).replace(/§./g,"")
+    if (source_name == (mc.client.username ?? "")) return
+    const {message} = packet
     lm.addlog("chat",`${source_name}:${message}`,{source_name,message,source:"Minecraft"})
     if (!pm.isjoined(source_name)) pm.join(source_name)
     eventBus.emit(`newChat`,{name:source_name,message,isMinecraft:true})
