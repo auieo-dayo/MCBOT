@@ -17,8 +17,8 @@ class client {
         this.client.on("start_game",(packet)=>{
             const position = packet.position ?? packet.Position ?? packet.Player_Position ?? packet.player_position
             this.world = {
-            name: null,
-            levelId: null
+                name: null,
+                levelId: null
             };
             this.world.name = packet.world_name
             this.world.levelId = packet.level_id
